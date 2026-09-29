@@ -1,13 +1,12 @@
 # DACS Cost Explorer
 
 Interactive cost scenarios for the UN Decade of Action for Cryospheric Sciences 2025–2034 (budget period 2027–2034).
-Static site: no backend and no database. Each viewer's edits are saved in their own browser only.
+Single self-contained file: logos, images and favicon are embedded in index.html, so nothing else needs uploading. No backend and no database. Each viewer's edits are saved in their own browser only.
 
 ## Contents
 
 ```
 index.html                     The application
-assets/img/                    DACS and UNESCO logos, background images, favicon
 .github/workflows/pages.yml    Deploys to GitHub Pages on every push to main
 .nojekyll                      Serves the files as they are, without Jekyll processing
 404.html, robots.txt           Redirect to the app; asks search engines not to index it
