@@ -1,0 +1,819 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="dark light">
+<meta name="robots" content="noindex, nofollow">
+<title>DACS Cost Explorer</title>
+<link rel="icon" type="image/png" href="assets/img/favicon.png">
+<style>
+/* Layout: glass sidebar + main column, sticky scenario bar on top of every view, cards on a topographic ground.
+   Identity taken from the DACS Logo Desk (liquid glass, navy/sky, dark by default). */
+:root{
+  --bg:#0C1330; --bg-2:#101A3F; --ink:#EEF3FB; --ink-2:#B8C3D9; --ink-3:#8793AE;
+  --line:rgba(255,255,255,.09); --line-2:rgba(255,255,255,.15);
+  --glass:rgba(28,40,82,.56); --glass-2:rgba(34,48,96,.82); --glass-3:rgba(28,40,82,.34);
+  --edge:rgba(255,255,255,.14); --hi:rgba(255,255,255,.16); --lo:rgba(0,0,0,.25);
+  --shadow:0 1px 2px rgba(0,0,0,.2),0 12px 36px rgba(0,0,0,.35);
+  --fill:rgba(255,255,255,.07); --fill-2:rgba(255,255,255,.12);
+  --accent:#7CC4F0; --accent-ink:#0C1330; --accent-tint:rgba(124,196,240,.16);
+  --good:#6FD39A; --good-t:rgba(111,211,154,.15); --warn:#F0C06A; --warn-t:rgba(240,192,106,.15); --bad:#F2998F; --bad-t:rgba(242,153,143,.15);
+  --c1:#6272E6; --c2:#1A9DB5; --c3:#56A23A; --target:#F0C06A;
+  --gloss:.16; --topo-op:.06; --photo-op:.30;
+  --topo:url("assets/img/topo-lines-white.webp");
+  --logo-decade:url("assets/img/decade-logo-white.webp"); --logo-unesco:url("assets/img/unesco-logo-white.webp");
+  --blur:26px; --r-xl:28px; --r-l:22px; --r-m:16px;
+  --font:-apple-system,BlinkMacSystemFont,"SF Pro Text","SF Pro Display","Segoe UI Variable Text","Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  color-scheme:dark;
+}
+:root[data-theme="light"]{
+  --bg:#EEF4FA; --bg-2:#DCEAF5; --ink:#121C38; --ink-2:#46526E; --ink-3:#6E7890;
+  --line:rgba(35,49,95,.10); --line-2:rgba(35,49,95,.18);
+  --glass:rgba(255,255,255,.62); --glass-2:rgba(255,255,255,.86); --glass-3:rgba(255,255,255,.42);
+  --edge:rgba(255,255,255,.75); --hi:rgba(255,255,255,.95); --lo:rgba(35,49,95,.06);
+  --shadow:0 1px 2px rgba(18,28,56,.05),0 10px 34px rgba(18,28,56,.09);
+  --fill:rgba(35,49,95,.06); --fill-2:rgba(35,49,95,.11);
+  --accent:#1F6FB8; --accent-ink:#fff; --accent-tint:rgba(31,111,184,.12);
+  --good:#1D7F46; --good-t:rgba(29,127,70,.12); --warn:#A0660A; --warn-t:rgba(214,146,26,.16); --bad:#B53A2E; --bad-t:rgba(181,58,46,.12);
+  --c1:#2A5CAA; --c2:#0A9CC0; --c3:#5BA83A; --target:#A0660A;
+  --gloss:.7; --topo-op:.075; --photo-op:0;
+  --topo:url("assets/img/topo-lines-navy.webp");
+  --logo-decade:url("assets/img/decade-logo-color.webp"); --logo-unesco:url("assets/img/unesco-logo-color.webp");
+  color-scheme:light;
+}
+
+*{box-sizing:border-box}
+html,body{min-height:100%}
+body{margin:0;font-family:var(--font);font-size:15px;line-height:1.45;color:var(--ink);background:var(--bg);-webkit-font-smoothing:antialiased;letter-spacing:-.005em}
+body::before{content:"";position:fixed;inset:0;z-index:-3;background:
+  radial-gradient(60% 50% at 8% 0%,rgba(142,210,238,.40),transparent 70%),
+  radial-gradient(45% 45% at 100% 12%,rgba(31,111,184,.18),transparent 70%),
+  radial-gradient(55% 60% at 70% 100%,rgba(10,156,192,.16),transparent 70%),
+  linear-gradient(180deg,var(--bg),var(--bg-2))}
+body::after{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;background:var(--topo) 55% 30%/1500px auto no-repeat;opacity:var(--topo-op)}
+.photo{position:fixed;inset:0;z-index:-2;pointer-events:none;background:url("assets/img/ice-cave.webp") center/cover;opacity:var(--photo-op);filter:saturate(1.1)}
+button,input,select{font:inherit;color:inherit}
+a{color:var(--accent)}
+:focus-visible{outline:2.5px solid var(--accent);outline-offset:2px;border-radius:10px}
+h1,h2,h3{margin:0;text-wrap:balance;letter-spacing:-.02em}
+p{margin:0}
+.num{font-variant-numeric:tabular-nums}
+
+.glass{position:relative;background:var(--glass);-webkit-backdrop-filter:blur(var(--blur)) saturate(175%);backdrop-filter:blur(var(--blur)) saturate(175%);
+  border:1px solid var(--edge);border-radius:var(--r-l);box-shadow:inset 0 1px 0 var(--hi),inset 0 -1px 0 var(--lo),var(--shadow)}
+.glass::before{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;
+  background:linear-gradient(135deg,rgba(255,255,255,.35),rgba(255,255,255,0) 38%,rgba(255,255,255,0) 70%,rgba(255,255,255,.12));opacity:var(--gloss)}
+.glass>*{position:relative}
+
+.app{display:grid;grid-template-columns:256px minmax(0,1fr);gap:28px;padding:22px 28px 56px;max-width:1560px;margin:0 auto}
+.side{position:sticky;top:18px;align-self:start;height:calc(100vh - 36px);display:flex;flex-direction:column;padding:18px 14px;border-radius:var(--r-xl)}
+.brand{display:flex;flex-direction:column;gap:10px;padding:4px 8px 16px;border-bottom:1px solid var(--line)}
+.lockup{display:flex;align-items:center;gap:10px}
+.logo-decade{height:40px;width:118px;flex:none;background:var(--logo-decade) left center/contain no-repeat}
+.lockup i{width:1px;height:32px;background:var(--line-2);flex:none}
+.logo-unesco{height:24px;width:78px;flex:none;background:var(--logo-unesco) left center/contain no-repeat}
+.brand-name{font-size:13px;color:var(--ink-2);font-weight:600}
+.nav{display:flex;flex-direction:column;gap:2px;margin-top:14px}
+.nav button{display:flex;align-items:center;gap:11px;border:0;background:transparent;padding:9px 10px;border-radius:12px;font-size:14.5px;font-weight:560;color:var(--ink-2);cursor:pointer;text-align:left}
+.nav button svg{width:20px;height:20px;flex:none;opacity:.85}
+.nav button:hover{background:var(--fill)}
+.nav button[aria-current="page"]{background:var(--glass-2);color:var(--ink);box-shadow:inset 0 1px 0 var(--hi),0 2px 10px rgba(18,28,56,.08)}
+.side-foot{margin-top:auto;display:flex;flex-direction:column;gap:10px;padding:12px 8px 2px;border-top:1px solid var(--line);font-size:12px;color:var(--ink-3)}
+
+main{min-width:0;display:flex;flex-direction:column;gap:22px}
+.topbar{display:none}
+.head{display:flex;align-items:flex-end;justify-content:space-between;gap:20px;flex-wrap:wrap;padding:6px 4px 0}
+.eyebrow{font-size:12px;font-weight:650;letter-spacing:.07em;text-transform:uppercase;color:var(--ink-3)}
+.title{font-size:34px;font-weight:720;line-height:1.08;margin-top:4px}
+.sub{color:var(--ink-2);margin-top:6px;max-width:72ch}
+
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;border:0;border-radius:999px;padding:9px 16px;font-size:14px;font-weight:620;cursor:pointer;background:var(--fill);color:var(--ink);white-space:nowrap}
+.btn:hover{background:var(--fill-2)}
+.btn.primary{background:var(--accent);color:var(--accent-ink)}
+.btn.sm{padding:6px 12px;font-size:13px}
+.btn svg{width:16px;height:16px}
+.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.seg{display:inline-flex;padding:3px;border-radius:999px;background:var(--fill);gap:2px}
+.seg button{border:0;background:transparent;border-radius:999px;padding:6px 13px;font-size:13.5px;font-weight:620;color:var(--ink-2);cursor:pointer;white-space:nowrap;min-width:38px}
+.seg button[aria-pressed="true"]{background:var(--glass-2);color:var(--ink);box-shadow:0 1px 3px rgba(18,28,56,.14),inset 0 1px 0 var(--hi)}
+.pill{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:3px 10px;font-size:12.5px;font-weight:620;white-space:nowrap;background:var(--fill);color:var(--ink-2)}
+.pill svg{width:13px;height:13px}
+.t-good{background:var(--good-t);color:var(--good)} .t-warn{background:var(--warn-t);color:var(--warn)} .t-bad{background:var(--bad-t);color:var(--bad)} .t-info{background:var(--accent-tint);color:var(--accent)}
+.muted{color:var(--ink-3)}
+
+/* scenario bar */
+.scen{position:sticky;top:10px;z-index:20;padding:14px 18px;border-radius:var(--r-l);display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px 24px;align-items:center}
+.scen-ctl{display:flex;flex-wrap:wrap;gap:10px 18px;align-items:center}
+.scen-ctl .grp{display:flex;align-items:center;gap:8px}
+.scen-ctl .grp>span{font-size:12.5px;font-weight:650;color:var(--ink-2);display:flex;align-items:center;gap:6px}
+.sw{width:10px;height:10px;border-radius:3px;flex:none}
+.scen-total{text-align:right}
+.scen-total b{display:block;font-size:24px;font-weight:720;letter-spacing:-.02em;font-variant-numeric:tabular-nums;line-height:1.1}
+.scen-total span{font-size:12.5px;color:var(--ink-3)}
+.presets{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.presets>span{font-size:12px;color:var(--ink-3);font-weight:600}
+
+.card{padding:24px 26px}
+.card h2{font-size:18px;font-weight:680}
+.card-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:16px;flex-wrap:wrap}
+.card-head p{font-size:13.5px;color:var(--ink-3);margin-top:3px;max-width:70ch}
+.grid{display:grid;gap:22px}
+.g2{grid-template-columns:repeat(2,minmax(0,1fr))}
+.g4{grid-template-columns:repeat(4,minmax(0,1fr))}
+.g3{grid-template-columns:repeat(3,minmax(0,1fr))}
+.span2{grid-column:span 2}
+
+.stat{padding:20px 22px;display:flex;flex-direction:column;gap:4px;min-width:0}
+.stat .l{font-size:13px;font-weight:600;color:var(--ink-2)}
+.stat .v{font-size:26px;font-weight:720;letter-spacing:-.02em;font-variant-numeric:tabular-nums;line-height:1.15}
+.stat .v small{font-size:15px;font-weight:600;color:var(--ink-2);margin-left:4px}
+.stat .s{font-size:12.5px;color:var(--ink-3)}
+.bar{height:8px;border-radius:99px;background:var(--fill-2);overflow:hidden;margin-top:8px}
+.bar i{display:block;height:100%;border-radius:99px;background:var(--accent)}
+
+/* charts */
+.chart{position:relative;width:100%}
+.chart svg{display:block;width:100%;height:auto;overflow:visible}
+.chart text{fill:var(--ink-2);font-size:12px;font-family:var(--font)}
+.chart .axis text{fill:var(--ink-3);font-size:11.5px}
+.chart .grid-l{stroke:var(--line);stroke-width:1}
+.chart .lbl-strong{fill:var(--ink);font-weight:650;font-variant-numeric:tabular-nums}
+.chart rect.hit{fill:transparent;cursor:default}
+.chart .seg-r{transition:opacity .15s}
+.chart:hover .seg-r.dim{opacity:.45}
+.legend{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:12.5px;color:var(--ink-2);margin-bottom:12px}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.legend .dash{width:14px;height:0;border-top:2px dashed var(--target)}
+#tip{position:fixed;z-index:80;pointer-events:none;padding:10px 12px;border-radius:12px;background:var(--glass-2);border:1px solid var(--edge);box-shadow:var(--shadow);font-size:12.5px;line-height:1.45;color:var(--ink);max-width:280px;-webkit-backdrop-filter:blur(20px);backdrop-filter:blur(20px)}
+#tip b{font-variant-numeric:tabular-nums}
+#tip .tr{display:flex;justify-content:space-between;gap:14px;align-items:center}
+#tip .tr span{display:inline-flex;align-items:center;gap:6px;color:var(--ink-2)}
+
+.rank{display:flex;flex-direction:column;gap:10px}
+.rank .r{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 12px;font-size:13.5px}
+.rank .r .n{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rank .r b{font-variant-numeric:tabular-nums;font-weight:650}
+.rank .r .track{grid-column:1/-1;height:6px;border-radius:99px;background:var(--fill)}
+.rank .r .track i{display:block;height:100%;border-radius:99px}
+
+/* tables */
+.table-wrap{overflow-x:auto;margin:0 -6px}
+table{width:100%;border-collapse:collapse;font-size:13.5px}
+th{font-size:11.5px;font-weight:650;color:var(--ink-3);text-align:right;padding:8px 10px;border-bottom:1px solid var(--line-2);white-space:nowrap;letter-spacing:.02em}
+th:first-child,td:first-child{text-align:left}
+td{padding:7px 10px;border-bottom:1px solid var(--line);vertical-align:middle;text-align:right;font-variant-numeric:tabular-nums}
+td:first-child{min-width:230px;font-weight:560;line-height:1.3}
+td .o{display:block;font-size:12px;color:var(--ink-3);font-weight:450;margin-top:2px}
+tr.sum td{font-weight:700;border-bottom:0;border-top:1px solid var(--line-2)}
+th.on,td.on{background:var(--accent-tint)}
+th.on{color:var(--accent)}
+.cell-in{width:100%;min-width:64px;max-width:120px;border:1px solid var(--line-2);background:var(--glass-3);border-radius:9px;padding:5px 8px;font-size:13.5px;text-align:right;font-variant-numeric:tabular-nums;color:var(--ink)}
+.cell-in.qty{max-width:74px}
+.cell-in.wide{max-width:150px}
+.cell-in:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-tint)}
+.cell-in.mod{border-color:var(--warn);background:var(--warn-t)}
+.derived{color:var(--ink-3);font-size:12.5px}
+.linked{font-size:11px;font-weight:650;color:var(--accent);margin-left:6px;white-space:nowrap}
+
+.kv{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px 18px;align-items:center}
+.kv label{font-size:14px;font-weight:560}
+.kv label small{display:block;font-size:12.5px;color:var(--ink-3);font-weight:450}
+.note{padding:12px 14px;border-radius:14px;background:var(--accent-tint);font-size:13.5px;color:var(--ink);line-height:1.5}
+.note.warn{background:var(--warn-t)}
+.gauge{display:flex;flex-direction:column;gap:8px}
+.gauge .track{position:relative;height:14px;border-radius:99px;background:var(--fill-2)}
+.gauge .track i{position:absolute;left:0;top:0;bottom:0;border-radius:99px;background:var(--c1)}
+.gauge .track em{position:absolute;top:-5px;bottom:-5px;width:3px;border-radius:2px;background:var(--target)}
+.gauge .scale{display:flex;justify-content:space-between;font-size:12px;color:var(--ink-3);font-variant-numeric:tabular-nums}
+
+.matrix td,.matrix th{text-align:left;vertical-align:top;white-space:normal}
+.matrix td{font-variant-numeric:normal;min-width:150px;font-size:13px;color:var(--ink-2)}
+.matrix td:first-child{color:var(--ink);min-width:190px}
+.yes{color:var(--good);font-weight:650} .maybe{color:var(--warn);font-weight:650} .no{color:var(--bad);font-weight:650}
+
+.toast{position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);z-index:90;padding:10px 18px;border-radius:999px;font-size:14px;font-weight:560;background:var(--glass-2);border:1px solid var(--edge);box-shadow:var(--shadow);color:var(--ink)}
+.tabbar{display:none}
+
+@media (max-width:1180px){.g4{grid-template-columns:repeat(2,minmax(0,1fr))}.g3{grid-template-columns:minmax(0,1fr)}.span2{grid-column:auto}.g2{grid-template-columns:minmax(0,1fr)}}
+@media (max-width:860px){
+  .app{grid-template-columns:minmax(0,1fr);gap:18px;padding:12px 16px calc(96px + env(safe-area-inset-bottom,0px))}
+  .side{display:none}
+  .topbar{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 14px;border-radius:22px}
+  .topbar .logo-decade{height:34px;width:100px}.topbar .logo-unesco{height:22px;width:70px}.topbar .lockup i{height:26px}
+  .tabbar{display:flex;position:fixed;left:50%;transform:translateX(-50%);bottom:calc(14px + env(safe-area-inset-bottom,0px));z-index:30;padding:6px;border-radius:999px;gap:2px;width:max-content;max-width:calc(100% - 24px);overflow-x:auto}
+  .tabbar button{border:0;background:none;display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 8px;border-radius:999px;font-size:10.5px;font-weight:600;color:var(--ink-2);cursor:pointer;white-space:nowrap}
+  .tabbar button svg{width:21px;height:21px}
+  .tabbar button[aria-current="page"]{background:var(--glass-2);color:var(--accent)}
+  .title{font-size:27px}
+  .card{padding:20px 18px}
+  .scen{grid-template-columns:minmax(0,1fr);position:relative;top:auto;padding:12px 14px}
+  .scen-total{text-align:left}
+}
+@media (max-width:520px){.g4{grid-template-columns:minmax(0,1fr)}.stat .v{font-size:26px}.scen-ctl .grp{width:100%;justify-content:space-between}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+
+<div class="photo" aria-hidden="true"></div>
+<div class="app">
+  <aside class="side glass" aria-label="Navigation">
+    <div class="brand">
+      <div class="lockup"><div class="logo-decade" role="img" aria-label="Decade of Action for Cryospheric Sciences 2025–2034"></div><i aria-hidden="true"></i><div class="logo-unesco" role="img" aria-label="UNESCO"></div></div>
+      <span class="brand-name">Cost Explorer · Decade budget scenarios 2027–2034</span>
+    </div>
+    <nav class="nav" id="nav"></nav>
+    <div class="side-foot">
+      <div class="row" style="justify-content:space-between"><span>Secretariat: UNESCO-IHP</span><button class="btn sm" id="themeBtn" type="button">Bright</button></div>
+    </div>
+  </aside>
+  <main>
+    <div class="topbar glass"><div class="lockup"><div class="logo-decade" role="img" aria-label="Decade of Action for Cryospheric Sciences 2025–2034"></div><i aria-hidden="true"></i><div class="logo-unesco" role="img" aria-label="UNESCO"></div></div><button class="btn sm" id="themeBtn2" type="button">Bright</button></div>
+    <section class="scen glass" id="scen" aria-label="Scenario"></section>
+    <div id="view" style="display:flex;flex-direction:column;gap:22px"></div>
+  </main>
+</div>
+<nav class="tabbar glass" id="tabbar" aria-label="Sections"></nav>
+<div id="tip" hidden></div>
+
+<script>
+/* ============================================================
+   1. Source data — DACS_Cost_scenarios_2027-2034.xlsx
+   ============================================================ */
+const WORKBOOK = {
+  params:{psc:0.07, nWG:5, first:2027, last:2034, target:1e9, envelopes:[1e7,2e7,3e7], basis:"unit", esc:0, ramp:1},
+  // Assumptions §1 staff (annual unit cost, maximum cost)
+  staff:{
+    coord:{name:"Decade Coordinator (P-5)",unit:292032,max:514186},
+    sci:{name:"Programme Specialist - Cryospheric scientist focal point (P-4)",unit:249388,max:439099},
+    reg:{name:"Programme Specialist - regional coordination (P-4)",unit:249396,max:439099},
+    fund:{name:"Programme Specialist - fundraising and partnerships (P-3)",unit:206652,max:363858},
+    data:{name:"Associate Programme Specialist - data and platform (P-1/2)",unit:159960,max:281643},
+    cap:{name:"Associate Programme Specialist - capacity building (P-1/2)",unit:159960,max:281643},
+    comm:{name:"Associate Communication Officer (P-1/2)",unit:159960,max:281643},
+    assoc:{name:"Associate Programme Specialist - Associate coordinator of the Decade (P-1/2)",unit:159960,max:281643},
+    admin:{name:"Administrative support (G-5)",unit:95928,max:195628},
+    consult:{name:"Consultant (11 months)",unit:45000,max:55000},
+    wgsup:{name:"Working Group L/AL/S coordination support",unit:50000,max:55000}
+  },
+  // Assumptions §2 meeting and operating unit costs
+  ops:{
+    gov:{name:"Statutory governance meeting in person",unit:60000,why:"Travel support, interpretation, venue, meeting services and documentation (except ESC, as Member States are in Paris)"},
+    virt:{name:"Virtual governance or coordination meeting",unit:10000,why:"Interpretation, platform support, moderation and meeting documentation"},
+    town:{name:"Large online plenary or partner town hall",unit:12500,why:"Technical production, interpretation, moderation and participation support"},
+    cfd:{name:"Cryosphere Finance Dialogue hybrid session",unit:60000,why:"Venue, travel support, communication, institutional participation and documentation"},
+    joint:{name:"Joint annual governance meeting in person or hybrid",unit:100000,why:"Joint SMC, Working Group, Finance Dialogue and Alliance coordination session"},
+    side:{name:"Side event at a major international event",unit:40000,why:"Event space, travel support, speaker preparation, interpretation, audiovisual services and outreach"},
+    summit:{name:"Triennial Cryosphere Summit (per edition)",unit:1200000,why:"Venue, travel support, interpretation, security and event production"},
+    wdg:{name:"World Day for Glaciers celebrations (per edition)",unit:150000,why:"Venue, travel support, interpretation, security and event production"},
+    wgmeet:{name:"Working Group annual meeting in person (about 30 participants)",unit:60000,why:"Technical workshop, travel and knowledge-product preparation"},
+    indig:{name:"Indigenous representative allowance to a Working Group",unit:30000,why:"Allowance support for participation in Working Group delivery"},
+    travel:{name:"Travel support for developing-country and Indigenous members (per WG)",unit:50000,why:"Participation support across meetings, consultations and Working Group activities"},
+    fellow:{name:"Early-career fellowship attached to a Working Group",unit:30000,why:"Fellowship support, mentoring and participation in Working Group delivery"},
+    brief:{name:"Policy brief or decision-maker product",unit:30000,why:"Research, drafting, review, editing, design and digital publication"},
+    video:{name:"Interview and video package",unit:15000,why:"Preparation, filming, editing, captions and short multilingual versions"},
+    web:{name:"un-cryosphere.org website management (annual package)",unit:20000,why:"Hosting, maintenance, accessibility, analytics, content publishing and technical support"},
+    sp:{name:"Private SharePoint coordination hub (annual package)",unit:10000,why:"Secure Working Group workspace, document management, permissions and workflow support"},
+    edit:{name:"Editing, publication and official translation package",unit:30000,why:"Editorial review, layout and selected multilingual versions of governance and policy products"},
+    missions:{name:"Secretariat missions and stakeholder engagement (annual package)",unit:75000,why:"Travel and mission costs for governance, partnerships, fundraising and country engagement"},
+    mel:{name:"Monitoring, evaluation, audit and statutory reporting (annual package)",unit:50000,why:"Results tracking, annual reporting, audit support and periodic review"},
+    iac:{name:"Indigenous Advisory Committee hybrid session",unit:60000,why:"Travel support, interpretation, venue, meeting services and documentation"}
+  },
+  // Secretariat sheet
+  secStaff:[
+    {name:"Decade Coordinator (P-5)",staff:"coord",q:[0,0,1]},
+    {name:"Programme Specialist - Cryospheric scientist focal point (P-4)",staff:"sci",q:[1,1,1]},
+    {name:"Programme Specialist - regional coordination (P-4)",staff:"reg",q:[0,0,1]},
+    {name:"Programme Specialist - fundraising and partnerships (P-3)",staff:"fund",q:[1,1,1]},
+    {name:"Associate Programme Specialist - data and platform (P-1/2)",staff:"data",q:[0,1,1]},
+    {name:"Associate Programme Specialist - capacity building (P-1/2)",staff:"cap",q:[0,0,1]},
+    {name:"Associate Communication Officer (P-1/2)",staff:"comm",q:[0,1,1]},
+    {name:"Associate Programme Specialist - Associate coordinator of the Decade (P-1/2)",staff:"assoc",q:[1,1,1]},
+    {name:"Administrative support (G-5)",staff:"admin",q:[0.5,1,1]},
+    {name:"Consultants (11-month equivalent)",staff:"consult",q:[1,1,2]}
+  ],
+  secOps:[
+    {name:"SMC meetings in person",ref:"gov",q:[0.5,1,1]},
+    {name:"SMC virtual meetings",unit:0,q:[3.5,3,3]},
+    {name:"ESC meetings in person",unit:30000,q:[0.5,1,1]},
+    {name:"ESC virtual meetings",ref:"virt",q:[2,1.5,1]},
+    {name:"Alliance plenary linked to a major milestone",ref:"gov",q:[0,0.5,1]},
+    {name:"Alliance online plenaries and partner town halls",ref:"town",q:[2,1.5,1]},
+    {name:"Cryosphere Finance Dialogue hybrid sessions",ref:"cfd",q:[0.5,1,2]},
+    {name:"Cryosphere Finance Dialogue online sessions",unit:0,q:[1.5,3,2]},
+    {name:"Joint annual governance meeting in person or hybrid",ref:"joint",q:[0,0.5,1]},
+    {name:"Joint annual governance meeting online",ref:"town",q:[1,0.5,0]},
+    {name:"World Day for Glaciers celebrations (per edition)",ref:"wdg",q:[0.5,1,1]},
+    {name:"Side events at major international events",ref:"side",q:[0.5,3,4]},
+    {name:"Policy briefs and decision-maker products",ref:"brief",q:[1,4,6]},
+    {name:"Interviews and video packages",ref:"video",q:[1,8,12]},
+    {name:"un-cryosphere.org website management",ref:"web",q:[1,2,2.5]},
+    {name:"Private SharePoint coordination hub for WGs management",ref:"sp",q:[1,2,2.5]},
+    {name:"Editing, publications and official translations",ref:"edit",q:[1,3,4]},
+    {name:"Secretariat missions and stakeholder engagement",ref:"missions",q:[0.25,1.5,2]},
+    {name:"Monitoring, evaluation, audit and statutory reporting",ref:"mel",q:[0.5,1,1.5]},
+    {name:"Indigenous Advisory Committee hybrid session",ref:"iac",q:[0.5,1.25,1.25]}
+  ],
+  // Working Groups sheet (per Working Group, per year)
+  wg:[
+    {name:"Dedicated technical support (Leadership, Associate Leads and/or Secretariat)",staff:"wgsup",q:[1,2,4]},
+    {name:"Annual meeting in person",ref:"wgmeet",q:[0.5,1,1]},
+    {name:"Allowance for Indigenous representatives",ref:"indig",q:[1,2,4]},
+    {name:"Virtual coordination meetings",unit:0,q:[6,8,10]},
+    {name:"Travel support - developing-country and Indigenous Peoples",ref:"travel",q:[0.5,1,2]},
+    {name:"Early-career fellowships attached to the group",ref:"fellow",q:[1,2,4]},
+    {name:"Technical studies, data acquisition and scientific publications",unit:50000,q:[1,3,6]}
+  ],
+  // Products sheet
+  streams:[
+    {name:"OC1 - Observation and interoperable data",unit:1e6,scope:"Monitoring systems, data integration, standards and priority gap closure"},
+    {name:"OC2 - Modelling and actionable projections",unit:1e6,scope:"Regional projections, scenarios and model-to-decision tools"},
+    {name:"OC3 - Risk and exposure assessment",unit:1e6,scope:"Hazard, exposure and vulnerability analysis, including early-warning applications"},
+    {name:"OC4 - Adaptation strategies and implementation design",unit:1e6,scope:"NDCs / NAPs readiness"},
+    {name:"OC5 - Policy, education and uptake",unit:1e6,scope:"Policy products, curricula, training and community communication"}
+  ],
+  coverage:{groupings:[3,6,6], perGrouping:[1,1,2]},
+  prod:[
+    {name:"Integrated regional project chains",kind:"chains",unitLabel:"chain-year"},
+    {name:"Cryosphere Intelligence Platform - shared data and service backbone",unit:1e6,q:[1,2,4],unitLabel:"annual service tier"},
+    {name:"Project preparation and finance convergence",unit:250000,kind:"perChain",unitLabel:"project chain"},
+    {name:"Cross-regional synthesis and open-access products",unit:500000,q:[1,2,4],unitLabel:"annual package"},
+    {name:"Triennial synthesis and summit (annualised)",kind:"summit",q:[1,1,1],unitLabel:"annualised package"}
+  ]
+};
+const LEVEL_NAMES = {prod:["Targeted hotspots","Global regional coverage","Universal scaled regional delivery"]};
+const COMP = [
+  {k:"sec",name:"Secretariat",short:"Secretariat",c:"--c1"},
+  {k:"wg",name:"Working Groups",short:"WGs",c:"--c2"},
+  {k:"prod",name:"Regional delivery and products",short:"Regional delivery",c:"--c3"}
+];
+
+/* ============================================================
+   2. State
+   ============================================================ */
+const clone = o => JSON.parse(JSON.stringify(o));
+const KEY = "dacs-cost-explorer-v1";
+let S;
+function freshState(){ return {m:clone(WORKBOOK), lv:{sec:0,wg:0,prod:0}, tab:"overview"}; }
+try{ S = JSON.parse(localStorage.getItem(KEY)) || freshState(); if(!S.m||!S.lv) S = freshState(); }catch(e){ S = freshState(); }
+function save(){ try{ localStorage.setItem(KEY, JSON.stringify(S)); }catch(e){} }
+function getPath(o,p){ return p.split(".").reduce((a,k)=>a==null?a:a[k], o); }
+function setPath(o,p,v){ const ks=p.split("."); const last=ks.pop(); const t=ks.reduce((a,k)=>a[k],o); t[last]=v; }
+
+/* ============================================================
+   3. Cost engine (pure) — reproduces the workbook formulas
+   ============================================================ */
+function staffUnit(m,key){ const s=m.staff[key]; return m.params.basis==="max" ? s.max : s.unit; }
+function lineUnit(m,l){ if(l.staff) return staffUnit(m,l.staff); if(l.ref) return m.ops[l.ref].unit; return l.unit; }
+function chains(m,i){ return m.coverage.groupings[i]*m.coverage.perGrouping[i]; }
+function chainUnit(m){ return m.streams.reduce((a,s)=>a+s.unit,0); }
+function prodUnit(m,l){ if(l.kind==="chains") return chainUnit(m); if(l.kind==="summit") return m.ops.summit.unit/3; return l.unit; }
+function prodQty(m,l,i){ if(l.kind==="chains"||l.kind==="perChain") return chains(m,i); return l.q[i]; }
+
+function compute(m){
+  const R = {secStaff:[], secOps:[], wg:[], prod:[]};
+  const lv=[0,1,2];
+  R.secStaff = m.secStaff.map(l=>lv.map(i=>lineUnit(m,l)*l.q[i]));
+  R.secOps   = m.secOps.map(l=>lv.map(i=>lineUnit(m,l)*l.q[i]));
+  R.wg       = m.wg.map(l=>lv.map(i=>lineUnit(m,l)*l.q[i]));
+  R.prod     = m.prod.map(l=>lv.map(i=>prodUnit(m,l)*prodQty(m,l,i)));
+  const col = (rows,i)=>rows.reduce((a,r)=>a+r[i],0);
+  R.staffSub = lv.map(i=>col(R.secStaff,i));
+  R.opsSub   = lv.map(i=>col(R.secOps,i));
+  R.sec      = lv.map(i=>R.staffSub[i]+R.opsSub[i]);   // USD/yr direct
+  R.wgPer    = lv.map(i=>col(R.wg,i));
+  R.wgAll    = lv.map(i=>R.wgPer[i]*m.params.nWG);       // USD/yr direct
+  R.prodAll  = lv.map(i=>col(R.prod,i));                  // USD/yr direct
+  return R;
+}
+function years(m){ const n=Math.max(1,Math.round(m.params.last-m.params.first+1)); return Array.from({length:n},(_,i)=>m.params.first+i); }
+function yearFactor(m,i){ const p=m.params; const ramp=Math.max(1,p.ramp||1); return Math.pow(1+(p.esc||0),i)*Math.min(1,(i+1)/ramp); }
+// Decade picture for a given mix of levels {sec,wg,prod}
+function scenario(m,R,mix){
+  const annual = {sec:R.sec[mix.sec], wg:R.wgAll[mix.wg], prod:R.prodAll[mix.prod]};
+  const psc = 1+m.params.psc;
+  const ys = years(m).map((y,i)=>{ const f=yearFactor(m,i)*psc; return {y, sec:annual.sec*f, wg:annual.wg*f, prod:annual.prod*f}; });
+  const dec = {sec:0,wg:0,prod:0}; ys.forEach(r=>{dec.sec+=r.sec;dec.wg+=r.wg;dec.prod+=r.prod;});
+  dec.total = dec.sec+dec.wg+dec.prod;
+  const annualTotal = annual.sec+annual.wg+annual.prod;
+  return {annual, annualTotal, ys, dec, envelope:m.params.envelopes[mix.sec]};
+}
+
+/* ============================================================
+   4. Formatting
+   ============================================================ */
+const fmt = n => Math.round(n).toLocaleString("en-US");
+const fmtQ = n => (Math.round(n*100)/100).toLocaleString("en-US");
+function fmtM(n,d=1){ const a=Math.abs(n); if(a>=1e9) return (n/1e9).toFixed(2)+" billion"; if(a>=1e6) return (n/1e6).toFixed(d)+" million"; if(a>=1e3) return Math.round(n/1e3).toLocaleString("en-US")+" thousand"; return fmt(n); }
+function fmtS(n){ const a=Math.abs(n); if(a>=1e9) return (n/1e9).toFixed(2)+" bn"; if(a>=1e6) return (n/1e6).toFixed(a>=1e8?0:1)+" M"; if(a>=1e3) return Math.round(n/1e3)+" k"; return fmt(n); }
+const pct = x => (x*100).toFixed(x<0.1?1:0)+"%";
+const esc = s => String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const cssv = v => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+const lvLabel = i => "Level "+(i+1);
+
+/* ============================================================
+   5. Navigation
+   ============================================================ */
+const ICON = {
+  overview:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>',
+  sec:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.2"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/><path d="M16 4.5a3 3 0 0 1 0 6M18 14c2 .8 3 2.9 3 6"/></svg>',
+  wg:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5" r="2.4"/><circle cx="5" cy="17" r="2.4"/><circle cx="19" cy="17" r="2.4"/><path d="M10.8 7.1 6.3 14.9M13.2 7.1l4.5 7.8M7.4 17h9.2"/></svg>',
+  prod:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 19 9 7l4 7 3-4 5 9H3z"/><path d="M8 9.5 9 7l1.2 2.2"/></svg>',
+  assump:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></svg>',
+  frame:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="M3 10h18M9 10v10"/></svg>'
+};
+const TABS = [
+  {k:"overview",name:"Overview",short:"Overview"},
+  {k:"sec",name:"Secretariat",short:"Secretariat"},
+  {k:"wg",name:"Working Groups",short:"WGs"},
+  {k:"prod",name:"Regional delivery",short:"Regional"},
+  {k:"assump",name:"Assumptions",short:"Inputs"},
+  {k:"frame",name:"Financing framework",short:"Finance"}
+];
+function renderNav(){
+  const b = short => TABS.map(t=>`<button type="button" data-tab="${t.k}" ${S.tab===t.k?'aria-current="page"':''}>${ICON[t.k]}<span>${short?t.short:t.name}</span></button>`).join("");
+  document.getElementById("nav").innerHTML = b(false);
+  document.getElementById("tabbar").innerHTML = b(true);
+}
+document.addEventListener("click",e=>{
+  const t=e.target.closest("[data-tab]"); if(t){ S.tab=t.dataset.tab; save(); renderAll(); window.scrollTo({top:0}); return; }
+  const lv=e.target.closest("[data-lv]"); if(lv){ S.lv[lv.dataset.comp]=+lv.dataset.lv; save(); renderAll(); return; }
+  const pre=e.target.closest("[data-preset]"); if(pre){ const i=+pre.dataset.preset; S.lv={sec:i,wg:i,prod:i}; save(); renderAll(); return; }
+  const a=e.target.closest("[data-act]"); if(a) ACT[a.dataset.act]?.(a);
+});
+const ACT = {
+  reset(){ const tab=S.tab, lv=S.lv; S=freshState(); S.tab=tab; S.lv=lv; save(); renderAll(); toast("All values reset to the workbook"); },
+  basis(a){ S.m.params.basis=a.dataset.v; save(); renderAll(); },
+  copy(){
+    const txt = summaryText();
+    const done=()=>toast("Scenario summary copied");
+    try{ navigator.clipboard.writeText(txt).then(done,()=>fallbackCopy(txt)); }catch(e){ fallbackCopy(txt); }
+  }
+};
+function fallbackCopy(txt){ const ta=document.createElement("textarea"); ta.value=txt; ta.style.position="fixed"; ta.style.opacity="0"; document.body.appendChild(ta); ta.select(); let ok=false; try{ ok=document.execCommand("copy"); }catch(e){} ta.remove(); toast(ok?"Scenario summary copied":"Copy is blocked here; select the figures on screen instead"); }
+function toast(msg){ document.querySelectorAll(".toast").forEach(t=>t.remove()); const t=document.createElement("div"); t.className="toast"; t.textContent=msg; document.body.appendChild(t); setTimeout(()=>t.remove(),2200); }
+
+/* ============================================================
+   6. Scenario bar (sticky on every view)
+   ============================================================ */
+function levelSeg(comp){
+  return `<div class="seg" role="group" aria-label="${comp.name} level">${[0,1,2].map(i=>`<button type="button" data-comp="${comp.k}" data-lv="${i}" aria-pressed="${S.lv[comp.k]===i}" title="${comp.name}: ${lvLabel(i)}">L${i+1}</button>`).join("")}</div>`;
+}
+function renderScen(R,sc){
+  const yrs=years(S.m), span=`${yrs[0]}–${yrs[yrs.length-1]}`;
+  const one = {sec:0,wg:1,prod:2}[S.tab];
+  const el=document.getElementById("scen");
+  if(one!==undefined){
+    const c=COMP[one], i=S.lv[c.k];
+    const sub = c.k==="sec" ? `Envelope USD ${fmtM(sc.envelope,0)} · ${sc.dec.sec<=sc.envelope?"within":"over"} by USD ${fmtM(Math.abs(sc.envelope-sc.dec.sec))}`
+              : `${pct(sc.dec[c.k]/sc.dec.total)} of the full scenario (USD ${fmtM(sc.dec.total)})`;
+    el.innerHTML=`
+      <div style="display:flex;flex-direction:column;gap:8px;min-width:0">
+        <div class="scen-ctl"><div class="grp"><span><i class="sw" style="background:var(${c.c})"></i>${c.name} level</span>${levelSeg(c)}</div></div>
+        <span class="muted" style="font-size:12.5px">${c.k==="prod"?LEVEL_NAMES.prod[i]+". ":""}Other blocks stay at their current levels; change them in Overview.</span>
+      </div>
+      <div class="scen-total"><span>${c.name}, decade total ${span}, PSC included</span><b>USD ${fmtM(sc.dec[c.k])}</b><span>${sub}</span></div>`;
+    return;
+  }
+  const pure = S.lv.sec===S.lv.wg && S.lv.wg===S.lv.prod;
+  el.innerHTML = `
+    <div style="display:flex;flex-direction:column;gap:10px;min-width:0">
+      <div class="scen-ctl">${COMP.map(c=>`<div class="grp"><span><i class="sw" style="background:var(${c.c})"></i>${c.short}</span>${levelSeg(c)}</div>`).join("")}</div>
+      <div class="presets"><span>Set all to</span>${[0,1,2].map(i=>`<button class="btn sm" type="button" data-preset="${i}" ${pure&&S.lv.sec===i?'style="background:var(--accent-tint);color:var(--accent)"':''}>${lvLabel(i)}</button>`).join("")}</div>
+    </div>
+    <div class="scen-total"><span>Decade total ${span}, PSC included</span><b>USD ${fmtM(sc.dec.total)}</b><span>${pct(sc.dec.total/S.m.params.target)} of the USD ${fmtM(S.m.params.target,0)} mobilisation target</span></div>`;
+}
+
+/* ============================================================
+   7. Charts (hand-drawn SVG, one scale per chart)
+   ============================================================ */
+function niceMax(v){ const p=Math.pow(10,Math.floor(Math.log10(v))); const n=v/p; const s=n<=1?1:n<=2?2:n<=2.5?2.5:n<=5?5:10; return s*p; }
+function ticks(max,count=5){ const step=niceMax(max/count); const out=[]; for(let v=0;v<=max+1e-6;v+=step) out.push(v); return out; }
+function axisMax(v,count){ const step=niceMax(v/count); return Math.ceil(v/step)*step; }
+function tipRows(rows,total){ return rows.map(r=>`<div class="tr"><span><i class="sw" style="background:var(${r.c})"></i>${esc(r.n)}</span><b>USD ${fmtM(r.v)}</b></div>`).join("")+(total!=null?`<div class="tr" style="margin-top:4px;border-top:1px solid var(--line);padding-top:4px"><span>Total</span><b>USD ${fmtM(total)}</b></div>`:""); }
+
+// A — Decade total by scenario: horizontal stacked bars + mobilisation target
+function chartScenarios(el){
+  const m=S.m, R=compute(m);
+  const rows=[0,1,2].map(i=>({label:lvLabel(i), sub:["Targeted hotspots","Global coverage","Universal scaled delivery"][i], sc:scenario(m,R,{sec:i,wg:i,prod:i}), cur:false}));
+  const pure = S.lv.sec===S.lv.wg && S.lv.wg===S.lv.prod;
+  if(pure) rows[S.lv.sec].cur=true;
+  else rows.push({label:"Your mix", sub:`S${S.lv.sec+1} · WG${S.lv.wg+1} · R${S.lv.prod+1}`, sc:scenario(m,R,S.lv), cur:true});
+  const W=Math.max(320, el.clientWidth||720), padL=W<520?70:132, padR=W<520?64:84, top=26, rowH=W<520?40:46, barH=W<520?18:22;
+  const H=top+rows.length*rowH+30;
+  const target=m.params.target;
+  const vmax=axisMax(Math.max(target,...rows.map(r=>r.sc.dec.total))*1.02,W<520?3:5);
+  const x=v=>padL+(W-padL-padR)*v/vmax;
+  const tk=ticks(vmax,W<520?3:5);
+  let s=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Decade total cost by scenario compared with the mobilisation target">`;
+  s+=`<g class="axis">`+tk.map(v=>`<line class="grid-l" x1="${x(v)}" x2="${x(v)}" y1="${top-6}" y2="${H-24}"/><text x="${x(v)}" y="${H-8}" text-anchor="middle">${v===0?"0":fmtS(v)}</text>`).join("")+`</g>`;
+  rows.forEach((r,ri)=>{
+    const y=top+ri*rowH+(rowH-barH)/2;
+    s+=`<text x="0" y="${y+barH/2-(W>=520?2:0)}" class="${r.cur?"lbl-strong":""}" dominant-baseline="middle" style="font-weight:${r.cur?700:600};fill:var(--ink)">${r.label}</text>`;
+    if(W>=520) s+=`<text x="0" y="${y+barH/2+13}" dominant-baseline="middle" style="font-size:11px;fill:var(--ink-3)">${esc(r.sub)}</text>`;
+    let acc=0; const parts=COMP.map(c=>({c:c.c,n:c.name,v:r.sc.dec[c.k]}));
+    const tip=`<b>${r.label}</b> · ${esc(r.sub)}`+tipRows(parts,r.sc.dec.total)+`<div class="tr"><span>Share of target</span><b>${pct(r.sc.dec.total/target)}</b></div>`;
+    parts.forEach((p,pi)=>{
+      const x0=x(acc), x1=x(acc+p.v); acc+=p.v;
+      const w=Math.max(0,x1-x0-(pi<2?2:0));
+      if(w>0) s+=`<rect class="seg-r" x="${x0}" y="${y}" width="${w}" height="${barH}" rx="${pi===2||parts.slice(pi+1).every(q=>q.v===0)?4:1}" fill="var(${p.c})" opacity="${r.cur?1:.72}"/>`;
+    });
+    s+=`<text x="${x(acc)+8}" y="${y+barH/2}" dominant-baseline="middle" class="lbl-strong">${fmtS(r.sc.dec.total)}</text>`;
+    if(r.cur) s+=`<rect x="${padL-6}" y="${y-5}" width="${x(acc)-padL+12}" height="${barH+10}" rx="8" fill="none" stroke="var(--accent)" stroke-width="1.5"/>`;
+    s+=`<rect class="hit" x="0" y="${top+ri*rowH}" width="${W}" height="${rowH}" data-tip="${esc(tip)}"/>`;
+  });
+  s+=`<line x1="${x(target)}" x2="${x(target)}" y1="${top-14}" y2="${H-24}" stroke="var(--target)" stroke-width="2" stroke-dasharray="5 4"/>`;
+  s+=`<text x="${x(target)}" y="${top-17}" text-anchor="${x(target)>W-110?"end":"middle"}" style="fill:var(--target);font-weight:650;font-size:11.5px">Target ${fmtS(target)}</text>`;
+  s+=`</svg>`;
+  el.innerHTML=s;
+}
+
+// B — Annual funding need per year, stacked columns
+function chartYears(el,sc){
+  const W=Math.max(320, el.clientWidth||620), H=W<520?220:260, padL=52, padR=8, top=18, bot=28;
+  const ys=sc.ys; const tot=ys.map(r=>r.sec+r.wg+r.prod);
+  const vmax=axisMax(Math.max(...tot)*1.02||1,4);
+  const y=v=>top+(H-top-bot)*(1-v/vmax);
+  const bw=(W-padL-padR)/ys.length, barW=Math.min(46,bw*.62);
+  let s=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Annual funding need by year">`;
+  s+=`<g class="axis">`+ticks(vmax,4).map(v=>`<line class="grid-l" x1="${padL}" x2="${W-padR}" y1="${y(v)}" y2="${y(v)}"/><text x="${padL-8}" y="${y(v)}" text-anchor="end" dominant-baseline="middle">${v===0?"0":fmtS(v)}</text>`).join("")+`</g>`;
+  ys.forEach((r,i)=>{
+    const cx=padL+bw*i+bw/2; let acc=0;
+    const parts=COMP.map(c=>({c:c.c,n:c.name,v:r[c.k]}));
+    parts.forEach((p,pi)=>{
+      const y0=y(acc), y1=y(acc+p.v); acc+=p.v;
+      const h=Math.max(0,y0-y1-(pi>0?2:0));
+      if(h>0) s+=`<rect class="seg-r" x="${cx-barW/2}" y="${y1}" width="${barW}" height="${h}" rx="${pi===2?4:1}" fill="var(${p.c})"/>`;
+    });
+    s+=`<text class="axis" x="${cx}" y="${H-8}" text-anchor="middle" style="fill:var(--ink-3);font-size:11.5px">${W<460?String(r.y).slice(2):r.y}</text>`;
+    s+=`<rect class="hit" x="${cx-bw/2}" y="${top}" width="${bw}" height="${H-top-bot}" data-tip="${esc(`<b>${r.y}</b>`+tipRows(parts,acc))}"/>`;
+  });
+  s+=`</svg>`;
+  el.innerHTML=s;
+}
+
+// Tooltip layer
+const tip=document.getElementById("tip");
+document.addEventListener("pointermove",e=>{
+  const t=e.target.closest&&e.target.closest("[data-tip]");
+  if(!t){ tip.hidden=true; return; }
+  tip.innerHTML=t.dataset.tip; tip.hidden=false;
+  const r=tip.getBoundingClientRect(); let x=e.clientX+14, y=e.clientY+14;
+  if(x+r.width>innerWidth-8) x=e.clientX-r.width-14; if(y+r.height>innerHeight-8) y=e.clientY-r.height-14;
+  tip.style.left=Math.max(8,x)+"px"; tip.style.top=Math.max(8,y)+"px";
+});
+document.addEventListener("pointerleave",()=>tip.hidden=true);
+
+/* ============================================================
+   8. Views
+   ============================================================ */
+function head(eyebrow,title,sub,actions=""){
+  return `<div class="head"><div><div class="eyebrow">${eyebrow}</div><h1 class="title">${title}</h1>${sub?`<p class="sub">${sub}</p>`:""}</div><div class="row">${actions}</div></div>`;
+}
+const RESET_BTN = `<button class="btn sm" type="button" data-act="reset">Reset to workbook</button>`;
+const isMod = p => { const a=getPath(S.m,p), b=getPath(WORKBOOK,p); return a!==b; };
+function inp(path,{cls="",step=1,label=""}={}){
+  const v=getPath(S.m,path);
+  return `<input class="cell-in ${cls} ${isMod(path)?"mod":""}" type="number" min="0" step="${step}" inputmode="decimal" value="${v}" data-set="${path}" id="in-${path.replace(/\./g,'-')}" aria-label="${esc(label)}">`;
+}
+function refCount(key,kind){ const m=S.m; const lists=[m.secOps,m.wg,m.secStaff]; let n=0; lists.forEach(L=>L.forEach(l=>{ if((kind==="ops"&&l.ref===key)||(kind==="staff"&&l.staff===key)) n++; })); if(kind==="ops"&&key==="summit") n++; return n; }
+
+function unitCell(listName,idx,l){
+  const m=S.m;
+  if(l.staff){ const f=m.params.basis==="max"?"max":"unit"; return inp(`staff.${l.staff}.${f}`,{cls:"wide",step:100,label:`${l.name} ${f==="max"?"maximum":"unit"} cost`})+(refCount(l.staff,"staff")>1?`<span class="linked" title="Shared with other lines">linked</span>`:""); }
+  if(l.ref){ const shared=refCount(l.ref,"ops")>1; return inp(`ops.${l.ref}.unit`,{cls:"wide",step:500,label:`${l.name} unit cost`})+(shared?`<span class="linked" title="This unit cost from the Assumptions sheet is used by more than one line; changing it here changes all of them">linked</span>`:""); }
+  return inp(`${listName}.${idx}.unit`,{cls:"wide",step:500,label:`${l.name} unit cost`});
+}
+function lineTable(listName,rows,costs,compKey,{sumLabel,sums,extraFoot=""}={}){
+  const cur=S.lv[compKey];
+  const th=[0,1,2].map(i=>`<th class="${i===cur?"on":""}">Qty L${i+1}</th>`).join("")+[0,1,2].map(i=>`<th class="${i===cur?"on":""}">L${i+1} (USD/yr)</th>`).join("");
+  const body=rows.map((l,idx)=>`<tr><td>${esc(l.name)}${l.note?`<span class="o">${esc(l.note)}</span>`:""}</td><td>${unitCell(listName,idx,l)}</td>${[0,1,2].map(i=>`<td class="${i===cur?"on":""}">${inp(`${listName}.${idx}.q.${i}`,{cls:"qty",step:.25,label:`${l.name} quantity level ${i+1}`})}</td>`).join("")}${[0,1,2].map(i=>`<td class="${i===cur?"on":""}" data-out="${listName}.${idx}.${i}">${fmt(costs[idx][i])}</td>`).join("")}</tr>`).join("");
+  const foot=sums?`<tr class="sum"><td>${sumLabel}</td><td></td><td class="${cur===0?"on":""}"></td><td class="${cur===1?"on":""}"></td><td class="${cur===2?"on":""}"></td>${[0,1,2].map(i=>`<td class="${i===cur?"on":""}" data-out="${listName}.sum.${i}">${fmt(sums[i])}</td>`).join("")}</tr>`:"";
+  return `<div class="table-wrap"><table><thead><tr><th>Budget line</th><th>Unit cost (USD)</th>${th}</tr></thead><tbody>${body}${foot}${extraFoot}</tbody></table></div>`;
+}
+
+function viewOverview(R,sc){
+  const m=S.m, p=m.params;
+  const head1=head("Decade of Action for Cryospheric Sciences","Cost scenarios 2027–2034",
+    "Pick a level for each budget block in the bar above, or edit any unit cost and quantity in the other tabs. Every figure recalculates with the workbook's formulas.",
+    `<button class="btn sm" type="button" data-act="copy">Copy summary</button>${RESET_BTN}`);
+  const envOk = sc.dec.sec<=sc.envelope; const head_ = sc.envelope-sc.dec.sec;
+  const tiles=`<div class="grid g4">
+    <div class="glass stat"><span class="l">Annual direct cost</span><span class="v">USD ${fmtM(sc.annualTotal)}</span><span class="s">Per year at full level, before PSC</span></div>
+    <div class="glass stat"><span class="l">Decade total, PSC included</span><span class="v">USD ${fmtM(sc.dec.total)}</span><span class="s">${years(m).length} years · PSC ${pct(p.psc)}</span></div>
+    <div class="glass stat"><span class="l">Share of mobilisation target</span><span class="v">${pct(sc.dec.total/p.target)}</span><div class="bar"><i style="width:${Math.min(100,sc.dec.total/p.target*100)}%"></i></div><span class="s">Target USD ${fmtM(p.target,0)}</span></div>
+    <div class="glass stat"><span class="l">Secretariat vs ${lvLabel(S.lv.sec)} envelope</span><span class="v">USD ${fmtM(sc.dec.sec)}</span><span class="row" style="gap:8px"><span class="pill ${envOk?"t-good":"t-bad"}">${envOk?"Within envelope":"Over envelope"}</span><span class="s">${envOk?"Headroom":"Gap"} USD ${fmtM(Math.abs(head_))} of ${fmtM(sc.envelope,0)}</span></span></div>
+  </div>`;
+  const legend=`<div class="legend">${COMP.map(c=>`<span><i class="sw" style="background:var(${c.c})"></i>${c.name}</span>`).join("")}<span><i class="dash"></i>Mobilisation target</span></div>`;
+  // Largest lines for the current mix (decade, PSC incl.)
+  const mult = sc.ys.reduce((a,_,i)=>a+yearFactor(m,i),0)*(1+p.psc);
+  const lines=[];
+  m.secStaff.forEach((l,i)=>lines.push({n:l.name,c:"--c1",v:R.secStaff[i][S.lv.sec]*mult}));
+  m.secOps.forEach((l,i)=>lines.push({n:l.name,c:"--c1",v:R.secOps[i][S.lv.sec]*mult}));
+  m.wg.forEach((l,i)=>lines.push({n:l.name+" (all WGs)",c:"--c2",v:R.wg[i][S.lv.wg]*p.nWG*mult}));
+  m.prod.forEach((l,i)=>lines.push({n:l.name,c:"--c3",v:R.prod[i][S.lv.prod]*mult}));
+  lines.sort((a,b)=>b.v-a.v); const top=lines.slice(0,8); const tmax=top[0]?.v||1;
+  const rank=`<div class="rank">${top.map(l=>`<div class="r"><span class="n" title="${esc(l.n)}">${esc(l.n)}</span><b>${fmtS(l.v)}</b><span class="track"><i style="width:${l.v/tmax*100}%;background:var(${l.c})"></i></span></div>`).join("")}</div>`;
+  const shares=COMP.map(c=>`<div class="r"><span class="n"><i class="sw" style="display:inline-block;background:var(${c.c});margin-right:8px"></i>${c.name}</span><b>USD ${fmtM(sc.dec[c.k])} · ${pct(sc.dec[c.k]/sc.dec.total)}</b></div>`).join("");
+  const levers = (p.esc||p.ramp>1)?`<div class="note warn">Exploration levers active: ${p.esc?`${(p.esc*100).toFixed(1)}% annual cost escalation`:""}${p.esc&&p.ramp>1?" and ":""}${p.ramp>1?`${p.ramp}-year ramp-up to full level`:""}. These are not part of the workbook. Set them back to zero in Assumptions to return to the workbook figures.</div>`:"";
+  return head1+levers+tiles+`
+  <div class="grid g3">
+    <div class="glass card span2"><div class="card-head"><div><h2>Decade total by scenario</h2><p>Eight-year cost with PSC, by budget block. The outlined bar is your current selection. Hover a bar for the breakdown.</p></div></div>${legend}<div class="chart" id="chA"></div></div>
+    <div class="glass card"><div class="card-head"><div><h2>Where the money goes</h2><p>Your selection, decade total with PSC.</p></div></div><div class="rank" style="margin-bottom:18px">${shares}</div><div class="eyebrow" style="margin-bottom:10px">Largest budget lines</div>${rank}</div>
+  </div>
+  <div class="glass card"><div class="card-head"><div><h2>Annual funding need, ${years(m)[0]}–${years(m).slice(-1)[0]}</h2><p>Your selection, per year with PSC. The workbook assumes the same amount every year; use the escalation and ramp-up levers in Assumptions to test other profiles.</p></div></div>${legend.replace(/<span><i class="dash"><\/i>Mobilisation target<\/span>/,"")}<div class="chart" id="chB"></div></div>`;
+}
+
+function viewSec(R,sc){
+  const m=S.m, cur=S.lv.sec;
+  const env=m.params.envelopes[cur]; const dec=sc.dec.sec; const ok=dec<=env;
+  const scaleMax=Math.max(env,dec)*1.08;
+  const gauge=`<div class="gauge"><div class="row" style="justify-content:space-between"><span><b>USD ${fmtM(dec)}</b> <span class="muted">over ${years(m).length} years with PSC</span></span><span class="pill ${ok?"t-good":"t-bad"}">${ok?"Within":"Over"} the ${lvLabel(cur)} envelope by USD ${fmtM(Math.abs(env-dec))}</span></div>
+    <div class="track"><i style="width:${dec/scaleMax*100}%"></i><em style="left:${env/scaleMax*100}%" title="Envelope"></em></div>
+    <div class="scale"><span>0</span><span>Envelope USD ${fmtM(env,0)}</span></div></div>`;
+  return head("Budget block 1","Secretariat","Central coordination at UNESCO (SC/HYD/HCA). Quantities are full-time equivalents or events per year; 0.5 means one event every two years.",RESET_BTN)+`
+  <div class="glass card"><div class="card-head"><div><h2>${lvLabel(cur)} against its target envelope</h2><p>Annual direct cost USD ${fmt(R.sec[cur])}: staff USD ${fmt(R.staffSub[cur])}, governance and operations USD ${fmt(R.opsSub[cur])}.</p></div></div>${gauge}</div>
+  <div class="glass card"><div class="card-head"><div><h2>Staff</h2><p>Full annual cost at UNESCO Headquarters, Paris, on the <b>${m.params.basis==="max"?"maximum":"standard unit"}</b> cost basis. Switch the basis in Assumptions.</p></div></div>${lineTable("secStaff",m.secStaff,R.secStaff,"sec",{sumLabel:"Subtotal - staff",sums:R.staffSub})}</div>
+  <div class="glass card"><div class="card-head"><div><h2>Governance and operations</h2><p>Lines marked linked share a unit cost from the Assumptions sheet with other lines.</p></div></div>${lineTable("secOps",m.secOps,R.secOps,"sec",{sumLabel:"Subtotal - governance and operations",sums:R.opsSub})}
+  <div class="table-wrap" style="margin-top:6px"><table><tbody><tr class="sum"><td>Total Secretariat (direct costs, USD/yr)</td>${[0,1,2].map(i=>`<td class="${i===cur?"on":""}" data-out="sec.tot.${i}">${fmt(R.sec[i])}</td>`).join("")}</tr></tbody></table></div></div>`;
+}
+
+function viewWG(R,sc){
+  const m=S.m, cur=S.lv.wg;
+  return head("Budget block 2","Working Groups","Activities of the Working Groups under Overarching Challenges OC1 to OC5. Costs are per Working Group per year, then multiplied by the number of groups.",RESET_BTN)+`
+  <div class="grid g3">
+    <div class="glass stat"><span class="l">Per Working Group, ${lvLabel(cur)}</span><span class="v">USD ${fmtM(R.wgPer[cur],2)}</span><span class="s">Per year, direct cost</span></div>
+    <div class="glass stat"><span class="l">All Working Groups, ${lvLabel(cur)}</span><span class="v">USD ${fmtM(R.wgAll[cur],2)}</span><span class="s">Per year, ${m.params.nWG} groups</span></div>
+    <div class="glass stat"><span class="l">Decade total, PSC included</span><span class="v">USD ${fmtM(sc.dec.wg)}</span><span class="s">${years(m).length} years · PSC ${pct(m.params.psc)}</span></div>
+  </div>
+  <div class="glass card"><div class="card-head"><div><h2>Budget lines per Working Group</h2><p>The technical support line uses the staff cost basis chosen in Assumptions.</p></div><div class="row"><label class="muted" for="in-params-nWG" style="font-size:13px;font-weight:600">Number of Working Groups</label>${inp("params.nWG",{cls:"qty",step:1,label:"Number of Working Groups"})}</div></div>
+  ${lineTable("wg",m.wg,R.wg,"wg",{sumLabel:"Subtotal per Working Group (USD/yr)",sums:R.wgPer})}
+  <div class="table-wrap" style="margin-top:6px"><table><tbody><tr class="sum"><td>Total Working Groups (direct costs, USD/yr)</td>${[0,1,2].map(i=>`<td class="${i===cur?"on":""}" data-out="wg.all.${i}">${fmt(R.wgAll[i])}</td>`).join("")}</tr></tbody></table></div></div>`;
+}
+
+function viewProd(R,sc){
+  const m=S.m, cur=S.lv.prod;
+  const streams=`<div class="table-wrap"><table><thead><tr><th>OC delivery stream</th><th>Unit cost (USD/project/yr)</th></tr></thead><tbody>${m.streams.map((s,i)=>`<tr><td>${esc(s.name)}<span class="o">${esc(s.scope)}</span></td><td>${inp(`streams.${i}.unit`,{cls:"wide",step:50000,label:s.name+" unit cost"})}</td></tr>`).join("")}<tr class="sum"><td>Integrated regional project chain</td><td data-out="chain.unit">${fmt(chainUnit(m))}</td></tr></tbody></table></div>`;
+  const cov=`<div class="table-wrap"><table><thead><tr><th>Delivery metric</th>${[0,1,2].map(i=>`<th class="${i===cur?"on":""}">L${i+1}</th>`).join("")}</tr></thead><tbody>
+    <tr><td>Active UNESCO regional groupings</td>${[0,1,2].map(i=>`<td class="${i===cur?"on":""}">${inp(`coverage.groupings.${i}`,{cls:"qty",step:1,label:"Regional groupings level "+(i+1)})}</td>`).join("")}</tr>
+    <tr><td>Integrated project chains per grouping</td>${[0,1,2].map(i=>`<td class="${i===cur?"on":""}">${inp(`coverage.perGrouping.${i}`,{cls:"qty",step:1,label:"Chains per grouping level "+(i+1)})}</td>`).join("")}</tr>
+    <tr class="sum"><td>Total integrated regional project chains</td>${[0,1,2].map(i=>`<td class="${i===cur?"on":""}" data-out="chains.${i}">${fmtQ(chains(m,i))}</td>`).join("")}</tr></tbody></table></div>`;
+  const cur_=S.lv.prod;
+  const body=m.prod.map((l,idx)=>{
+    let unit, q;
+    if(l.kind==="chains"){ unit=`<span class="derived" data-out="prod.unit.${idx}">${fmt(chainUnit(m))}</span>`; }
+    else if(l.kind==="summit"){ unit=`<span class="derived" data-out="prod.unit.${idx}" title="Triennial Summit cost divided by 3">${fmt(m.ops.summit.unit/3)}</span>`; }
+    else unit=inp(`prod.${idx}.unit`,{cls:"wide",step:50000,label:l.name+" unit cost"});
+    q=[0,1,2].map(i=>`<td class="${i===cur_?"on":""}">${(l.kind==="chains"||l.kind==="perChain")?`<span class="derived" data-out="prod.q.${idx}.${i}">${fmtQ(chains(m,i))}</span>`:inp(`prod.${idx}.q.${i}`,{cls:"qty",step:1,label:`${l.name} quantity level ${i+1}`})}</td>`).join("");
+    return `<tr><td>${esc(l.name)}<span class="o">Per ${esc(l.unitLabel)}${l.kind==="summit"?" · Summit cost ÷ 3":""}${l.kind==="chains"||l.kind==="perChain"?" · quantity follows coverage":""}</span></td><td>${unit}</td>${q}${[0,1,2].map(i=>`<td class="${i===cur_?"on":""}" data-out="prod.${idx}.${i}">${fmt(R.prod[idx][i])}</td>`).join("")}</tr>`;
+  }).join("");
+  const table=`<div class="table-wrap"><table><thead><tr><th>Budget line</th><th>Unit cost (USD)</th>${[0,1,2].map(i=>`<th class="${i===cur_?"on":""}">Qty L${i+1}</th>`).join("")}${[0,1,2].map(i=>`<th class="${i===cur_?"on":""}">L${i+1} (USD/yr)</th>`).join("")}</tr></thead><tbody>${body}<tr class="sum"><td>Total products and regional delivery (direct, USD/yr)</td><td></td><td class="${cur_===0?"on":""}"></td><td class="${cur_===1?"on":""}"></td><td class="${cur_===2?"on":""}"></td>${[0,1,2].map(i=>`<td class="${i===cur_?"on":""}" data-out="prod.sum.${i}">${fmt(R.prodAll[i])}</td>`).join("")}</tr></tbody></table></div>`;
+  return head("Budget block 3","Regional delivery and products","Integrated regional project chains that deliver the five Overarching Challenges as one programme, plus the shared platform, finance convergence and synthesis products.",RESET_BTN)+`
+  <div class="grid g3">
+    <div class="glass stat"><span class="l">${lvLabel(cur)} · ${LEVEL_NAMES.prod[cur]}</span><span class="v">${fmtQ(chains(m,cur))} <small>project chains</small></span><span class="s">${fmtQ(m.coverage.groupings[cur])} regional groupings × ${fmtQ(m.coverage.perGrouping[cur])} per grouping</span></div>
+    <div class="glass stat"><span class="l">Annual direct cost</span><span class="v">USD ${fmtM(R.prodAll[cur])}</span><span class="s">Per year, before PSC</span></div>
+    <div class="glass stat"><span class="l">Decade total, PSC included</span><span class="v">USD ${fmtM(sc.dec.prod)}</span><span class="s">${pct(sc.dec.prod/sc.dec.total)} of your total scenario</span></div>
+  </div>
+  <div class="grid g2">
+    <div class="glass card"><div class="card-head"><div><h2>One regional project chain</h2><p>Minimum annual delivery package for one regional project.</p></div></div>${streams}</div>
+    <div class="glass card"><div class="card-head"><div><h2>Scenario coverage</h2><p>How many chains run in each level.</p></div></div>${cov}</div>
+  </div>
+  <div class="glass card"><div class="card-head"><div><h2>Annual products and regional delivery budget</h2></div></div>${table}</div>`;
+}
+
+function viewAssump(){
+  const m=S.m,p=m.params;
+  const basisSeg=`<div class="seg" role="group" aria-label="Staff cost basis"><button type="button" data-act="basis" data-v="unit" aria-pressed="${p.basis==="unit"}">Standard unit cost</button><button type="button" data-act="basis" data-v="max" aria-pressed="${p.basis==="max"}">Maximum cost</button></div>`;
+  const gen=`<div class="kv">
+    <label for="in-params-psc">Programme support costs (PSC)<small>Multi-Donor Trust Fund rate, as a decimal (0.07 = 7%)</small></label>${inp("params.psc",{step:.01,label:"PSC rate"})}
+    <label for="in-params-first">First budget year</label>${inp("params.first",{cls:"qty",step:1,label:"First budget year"})}
+    <label for="in-params-last">Last budget year<small>Number of years: ${years(m).length}</small></label>${inp("params.last",{cls:"qty",step:1,label:"Last budget year"})}
+    <label for="in-params-target">Total Decade mobilisation target (USD)</label>${inp("params.target",{cls:"wide",step:1e7,label:"Mobilisation target"})}
+    ${[0,1,2].map(i=>`<label for="in-params-envelopes-${i}">Level ${i+1} Secretariat envelope (USD)<small>${years(m)[0]}–${years(m).slice(-1)[0]} total, PSC included</small></label>${inp(`params.envelopes.${i}`,{cls:"wide",step:1e6,label:`Level ${i+1} envelope`})}`).join("")}
+  </div>`;
+  const levers=`<div class="kv">
+    <label for="in-params-esc">Annual cost escalation<small>Decimal per year, compounded from the first year (0.02 = 2%)</small></label>${inp("params.esc",{step:.005,label:"Annual escalation"})}
+    <label for="in-params-ramp">Ramp-up period (years)<small>1 = full level from the first year; 3 = one third, two thirds, then full</small></label>${inp("params.ramp",{cls:"qty",step:1,label:"Ramp-up years"})}
+  </div>`;
+  const staff=`<div class="table-wrap"><table><thead><tr><th>Line</th><th class="${p.basis==="unit"?"on":""}">Annual unit cost (USD)</th><th class="${p.basis==="max"?"on":""}">Maximum cost (USD)</th></tr></thead><tbody>${Object.entries(m.staff).map(([k,s])=>`<tr><td>${esc(s.name)}</td><td class="${p.basis==="unit"?"on":""}">${inp(`staff.${k}.unit`,{cls:"wide",step:100,label:s.name+" unit cost"})}</td><td class="${p.basis==="max"?"on":""}">${inp(`staff.${k}.max`,{cls:"wide",step:100,label:s.name+" maximum cost"})}</td></tr>`).join("")}</tbody></table></div>`;
+  const ops=`<div class="table-wrap"><table><thead><tr><th>Line</th><th>Unit cost (USD)</th><th style="text-align:left">Used by</th></tr></thead><tbody>${Object.entries(m.ops).map(([k,o])=>{
+    const users=[...m.secOps.filter(l=>l.ref===k).map(l=>"Secretariat"),...m.wg.filter(l=>l.ref===k).map(l=>"Working Groups")]; if(k==="summit") users.push("Regional delivery");
+    const u=[...new Set(users)];
+    return `<tr><td>${esc(o.name)}<span class="o">${esc(o.why)}</span></td><td>${inp(`ops.${k}.unit`,{cls:"wide",step:500,label:o.name+" unit cost"})}</td><td style="text-align:left;white-space:nowrap">${u.length?u.map(x=>`<span class="pill" style="margin:2px">${x}</span>`).join(""):'<span class="muted" style="font-size:12.5px">Not used</span>'}</td></tr>`;}).join("")}</tbody></table></div>`;
+  return head("Model inputs","Assumptions","Changes here flow through every line that references them, as in the workbook's Assumptions sheet. Edited values are highlighted.",RESET_BTN)+`
+  <div class="grid g2">
+    <div class="glass card"><div class="card-head"><div><h2>General parameters</h2></div></div>${gen}</div>
+    <div class="glass card"><div class="card-head"><div><h2>Exploration levers</h2><p>Not in the workbook. Both are neutral by default, so the figures match the workbook until you change them.</p></div></div>${levers}
+      <div class="card-head" style="margin:22px 0 10px"><div><h2>Staff cost basis</h2><p>The workbook computes staff with the standard unit cost. The maximum cost column is listed in the workbook but not used in its totals.</p></div></div>${basisSeg}</div>
+  </div>
+  <div class="glass card"><div class="card-head"><div><h2>Staff costs</h2><p>Full annual cost, UNESCO Headquarters, Paris (USD). The highlighted column is the basis in use.</p></div></div>${staff}</div>
+  <div class="glass card"><div class="card-head"><div><h2>Meeting and operating unit costs</h2></div></div>${ops}</div>`;
+}
+
+function viewFrame(){
+  const actors=["Heads of State / Government","MDBs / IFIs","Insurance / Reinsurance","Philanthropic foundations","Science / UN System"];
+  const mat=[
+    ["OC1 Observation and interoperable data",["National monitoring infrastructure; co-financing; public data","Observation infrastructure; technical assistance","Risk-data requirements; underwriting data","Monitoring pilots; research grants","Observation networks; standards; scientific data"]],
+    ["OC2 Modelling and actionable projections",["National modelling capacity; planning integration","Modelling platforms; technical assistance","Climate/catastrophe modelling requirements","Research and innovation","Models; scenarios; scientific expertise"]],
+    ["OC3 Risk and exposure",["Risk assessments; early warning systems","Disaster-risk finance; risk assessment","Risk analytics; underwriting; risk transfer","Vulnerability / early-warning pilots","Hazard, exposure and vulnerability science"]],
+    ["OC4 Adaptation and implementation",["NAP/NDC implementation; public investment","Adaptation finance; project preparation","Resilience incentives; risk transfer","Adaptation pilots","Technical/project support"]],
+    ["OC5 Policy, education and uptake",["Policy adoption; public programmes","Capacity building","Risk literacy","Education; fellowships","Policy interface; training knowledge"]]
+  ];
+  const cats=[
+    ["Direct DACS financing","Funding a DACS Working Group / Secretariat activity","Yes, considered a partner","Yes","Directly funds implementation of the Decade","yes"],
+    ["DACS project financing","Funding an Overarching Challenge regional DACS project","Yes, considered a partner","Yes","Directly supports a defined DACS delivery activity","yes"],
+    ["DACS-enabled project financing","Financing of adaptation projects that use DACS cryosphere risk assessment","Yes, if DACS role is demonstrable","Potentially","DACS science/data materially enabled project development or financing","maybe"],
+    ["DACS technical contribution","DACS provides modelling, data or risk assessment to an external project","Yes, as DACS contribution","Not automatically the full project value","DACS contributes to the project but did not necessarily finance it","maybe"],
+    ["In-kind scientific contribution","Contributing observations, data or expertise","Yes","Potentially, separately recorded","Supports DACS implementation","maybe"],
+    ["DACS-aligned external investment","Climate-resilient projects with no DACS involvement","No","No, unless DACS role is established","Supports the same broad objective but cannot automatically be attributed to DACS","no"],
+    ["General cryosphere research","Research project unrelated to DACS priorities","No","No","Cryosphere-related but outside the Decade's defined activities","no"],
+    ["General adaptation finance","Adaptation financing with no cryosphere/DACS component","No","No","Adaptation finance alone does not constitute DACS financing","no"]
+  ];
+  return head("Convergence financing","Financing framework","Secretariat and Working Group funding make DACS fully operational. The wider aim is contributions from financial actors, through financing and through actions aligned with the Overarching Challenges.")+`
+  <div class="glass card"><div class="card-head"><div><h2>What counts as a DACS contribution</h2><p>Decides what can be counted towards the USD ${fmtM(S.m.params.target,0)} mobilisation target.</p></div></div>
+    <div class="table-wrap"><table class="matrix"><thead><tr><th>Contribution category</th><th>Example</th><th>DACS activity?</th><th>Counts towards mobilisation?</th><th>Reasoning</th></tr></thead><tbody>${cats.map(c=>`<tr><td>${c[0]}</td><td>${c[1]}</td><td>${c[2]}</td><td class="${c[5]}">${c[3]}</td><td>${c[4]}</td></tr>`).join("")}</tbody></table></div></div>
+  <div class="glass card"><div class="card-head"><div><h2>Contributions beyond direct financing, by actor</h2><p>How each type of actor can contribute to each Overarching Challenge.</p></div></div>
+    <div class="table-wrap"><table class="matrix"><thead><tr><th>DACS OC</th>${actors.map(a=>`<th>${a}</th>`).join("")}</tr></thead><tbody>${mat.map(r=>`<tr><td>${r[0]}</td>${r[1].map(x=>`<td>${x}</td>`).join("")}</tr>`).join("")}</tbody></table></div></div>
+  <div class="note">The workbook's "Funding a DACS Global System" table (regional and global cost estimates per OC) is still marked TBC and holds no figures yet.</div>`;
+}
+
+/* ============================================================
+   9. Render + live recalculation
+   ============================================================ */
+let R, SC;
+function recalc(){ R=compute(S.m); SC=scenario(S.m,R,S.lv); }
+function renderView(){
+  recalc();
+  const v=document.getElementById("view");
+  const f={overview:viewOverview,sec:viewSec,wg:viewWG,prod:viewProd,assump:viewAssump,frame:viewFrame}[S.tab]||viewOverview;
+  v.innerHTML=f(R,SC);
+  drawCharts();
+}
+function drawCharts(){ const a=document.getElementById("chA"), b=document.getElementById("chB"); if(a) chartScenarios(a); if(b) chartYears(b,SC); }
+function renderAll(){ recalc(); renderNav(); renderScen(R,SC); renderView(); }
+
+// Live edits: update state, then refresh outputs without rebuilding inputs (keeps focus)
+document.addEventListener("input",e=>{
+  const el=e.target.closest("[data-set]"); if(!el) return;
+  let v=parseFloat(el.value); if(!isFinite(v)) return;
+  if(v<0) v=0;
+  const path=el.dataset.set;
+  if(path==="params.ramp"||path==="params.nWG"||path.startsWith("params.first")||path.startsWith("params.last")) v=Math.round(v);
+  if(path==="params.last" && v<S.m.params.first) return;
+  if(path==="params.ramp" && v<1) v=1;
+  setPath(S.m,path,v); save();
+  document.querySelectorAll(`[data-set="${path}"]`).forEach(x=>{ x.classList.toggle("mod",isMod(path)); if(x!==el) x.value=v; });
+  refresh();
+});
+// When a field loses focus, rebuild the view so labels and stats that depend on it catch up
+document.addEventListener("change",e=>{
+  if(!e.target.closest("[data-set]")) return;
+  setTimeout(()=>{ // let focus move first, then rebuild and put focus back where the person is
+    const a=document.activeElement, id=a&&a.id, y=scrollY;
+    renderView(); scrollTo(0,y);
+    const n=id&&document.getElementById(id); if(n){ n.focus({preventScroll:true}); try{ n.select(); }catch(_){} }
+  },0);
+});
+function refresh(){
+  recalc();
+  renderScen(R,SC);
+  const m=S.m, out={};
+  ["secStaff","secOps","wg","prod"].forEach(k=>R[k].forEach((r,i)=>r.forEach((v,j)=>out[`${k}.${i}.${j}`]=fmt(v))));
+  [0,1,2].forEach(i=>{ out[`secStaff.sum.${i}`]=fmt(R.staffSub[i]); out[`secOps.sum.${i}`]=fmt(R.opsSub[i]); out[`sec.tot.${i}`]=fmt(R.sec[i]); out[`wg.sum.${i}`]=fmt(R.wgPer[i]); out[`wg.all.${i}`]=fmt(R.wgAll[i]); out[`prod.sum.${i}`]=fmt(R.prodAll[i]); out[`chains.${i}`]=fmtQ(chains(m,i)); });
+  out["chain.unit"]=fmt(chainUnit(m));
+  m.prod.forEach((l,idx)=>{ out[`prod.unit.${idx}`]=fmt(prodUnit(m,l)); [0,1,2].forEach(i=>out[`prod.q.${idx}.${i}`]=fmtQ(prodQty(m,l,i))); });
+  document.querySelectorAll("[data-out]").forEach(el=>{ const k=el.dataset.out; if(k in out) el.textContent=out[k]; });
+  drawCharts();
+}
+
+// Theme toggle (Bright / Dark), as on the DACS platform
+function currentTheme(){ return document.documentElement.dataset.theme==="light"?"light":"dark"; }
+function applyThemeLabels(){ const t=currentTheme(); ["themeBtn","themeBtn2"].forEach(id=>{ const b=document.getElementById(id); b.textContent=t==="light"?"Dark":"Bright"; b.setAttribute("aria-label",t==="light"?"Switch to the dark theme":"Switch to the bright theme"); }); }
+function setTheme(t){ document.documentElement.dataset.theme=t; try{localStorage.setItem(KEY+"-theme",t);}catch(e){} applyThemeLabels(); drawCharts(); }
+try{ const t=localStorage.getItem(KEY+"-theme"); if(t) document.documentElement.dataset.theme=t; }catch(e){}
+["themeBtn","themeBtn2"].forEach(id=>document.getElementById(id).addEventListener("click",()=>setTheme(currentTheme()==="light"?"dark":"light")));
+applyThemeLabels();
+
+function summaryText(){
+  const m=S.m,p=m.params, ys=years(m);
+  const L=[`DACS cost scenario ${ys[0]}-${ys[ys.length-1]}`,
+   `Mix: Secretariat Level ${S.lv.sec+1}, Working Groups Level ${S.lv.wg+1}, Regional delivery Level ${S.lv.prod+1}`,
+   `Annual direct cost: USD ${fmt(SC.annualTotal)}`,
+   `  Secretariat: USD ${fmt(SC.annual.sec)} | Working Groups (${p.nWG}): USD ${fmt(SC.annual.wg)} | Regional delivery: USD ${fmt(SC.annual.prod)}`,
+   `Decade total incl. PSC (${pct(p.psc)}): USD ${fmt(SC.dec.total)}`,
+   `  Secretariat: USD ${fmt(SC.dec.sec)} (envelope USD ${fmt(SC.envelope)}, ${SC.dec.sec<=SC.envelope?"headroom":"gap"} USD ${fmt(Math.abs(SC.envelope-SC.dec.sec))})`,
+   `  Working Groups: USD ${fmt(SC.dec.wg)}`,
+   `  Regional delivery and products: USD ${fmt(SC.dec.prod)}`,
+   `Share of USD ${fmt(p.target)} mobilisation target: ${pct(SC.dec.total/p.target)}`];
+  if(p.basis==="max") L.push("Staff costed at maximum cost.");
+  if(p.esc||p.ramp>1) L.push(`Exploration levers: escalation ${(p.esc*100).toFixed(1)}%/yr, ramp-up ${p.ramp} yr (not in the workbook).`);
+  return L.join("\n");
+}
+
+let rz; addEventListener("resize",()=>{ clearTimeout(rz); rz=setTimeout(drawCharts,120); });
+renderAll();
+</script>
+
+</body>
+</html>
