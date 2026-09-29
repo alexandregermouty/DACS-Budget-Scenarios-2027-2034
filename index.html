@@ -166,7 +166,24 @@ td{padding:7px 10px;border-bottom:1px solid var(--line);vertical-align:middle;te
 td:first-child{min-width:230px;font-weight:560;line-height:1.3}
 td .o{display:block;font-size:12px;color:var(--ink-3);font-weight:450;margin-top:2px}
 tr.sum td{font-weight:700;border-bottom:0;border-top:1px solid var(--line-2)}
+tr.sum.total td{border-top:2px solid var(--line-2);font-size:14.5px;padding-top:12px;padding-bottom:12px}
 th.on,td.on{background:var(--accent-tint)}
+/* coverage table */
+.cover td,.cover th{text-align:left;vertical-align:top}
+.cover th{font-size:12px}
+.cover td{font-variant-numeric:tabular-nums;min-width:150px}
+.cover td:first-child{min-width:220px;font-weight:560;color:var(--ink-2)}
+.cover tr.grp td{padding-top:18px;border-bottom:1px solid var(--line-2);font-weight:700;color:var(--ink)}
+.cover tr.grp td:first-child{color:var(--ink)}
+.cover tr.grp td b{font-size:15px}
+.cover tr:not(.grp) td.pick{cursor:pointer}
+.cover td.pick:hover{background:var(--fill)}
+.cover td.pick.on:hover{background:var(--accent-tint)}
+.cover .big{font-weight:680;color:var(--ink);font-size:14px}
+.cover .o{display:block;font-size:12px;color:var(--ink-3);font-weight:450;margin-top:2px;line-height:1.35}
+.cover .nil{color:var(--ink-3)}
+.cover .lvh{display:flex;flex-direction:column;gap:1px}
+.cover .lvh span{font-size:11px;font-weight:600;color:var(--ink-3);letter-spacing:0}
 th.on{color:var(--accent)}
 .cell-in{width:100%;min-width:64px;max-width:120px;border:1px solid var(--line-2);background:var(--glass-3);border-radius:9px;padding:5px 8px;font-size:13.5px;text-align:right;font-variant-numeric:tabular-nums;color:var(--ink)}
 .cell-in.qty{max-width:74px}
@@ -571,6 +588,67 @@ document.addEventListener("pointerleave",()=>tip.hidden=true);
 function head(eyebrow,title,sub,actions=""){
   return `<div class="head"><div><div class="eyebrow">${eyebrow}</div><h1 class="title">${title}</h1>${sub?`<p class="sub">${sub}</p>`:""}</div><div class="row">${actions}</div></div>`;
 }
+
+/* ---------- What each level covers (overview) ---------- */
+const STAFF_SHORT=["Coordinator P-5","Cryosphere scientist P-4","Regional coordination P-4","Fundraising P-3","Data and platform P-1/2","Capacity building P-1/2","Communication P-1/2","Associate coordinator P-1/2","Administrative support G-5","Consultants"];
+const OPS_TAG=["ip","v","ip","v","ip","v","ip","v","ip","v","wdg","side","brief","video","web","sp","pub","mission","mel","ip"];
+const OPS_SHORT=["SMC","SMC","ESC","ESC","Alliance plenary","Alliance town halls","Finance Dialogue","Finance Dialogue","Joint governance","Joint governance","World Day for Glaciers","Side events","Policy briefs","Videos","Website","SharePoint hub","Publications","Missions","M&E and audit","Indigenous Advisory Committee"];
+function frac(q){ const w=Math.floor(q), r=Math.round((q-w)*100)/100; const f={0.25:"¼",0.5:"½",0.75:"¾"}[r]; if(r===0) return String(w); return f?(w?w+f:f):fmtQ(q); }
+function cadence(q){ if(q<=0) return '<span class="nil">None</span>'; if(q<1){ const n=Math.round(1/q); return `1 every ${n} years`; } return `${frac(q)} per year`; }
+function overDecade(q){ const n=years(S.m).length, t=q*n; return q>0?`<span class="o">${Math.round(t*100)/100} over ${n} years</span>`:""; }
+function coverTable(R){
+  const m=S.m, nWG=m.params.nWG, L=[0,1,2];
+  const sumTag=(tag,i)=>m.secOps.reduce((a,l,k)=>a+(OPS_TAG[k]===tag?l.q[i]:0),0);
+  const listTag=(tags,i)=>m.secOps.map((l,k)=>tags.includes(OPS_TAG[k])&&l.q[i]>0?`${OPS_SHORT[k]} ${frac(l.q[i])}`:null).filter(Boolean);
+  const rowsSec=[
+    ["Staff posts (full-time equivalent)", i=>{ const posts=m.secStaff.slice(0,9).map((l,k)=>l.q[i]>0?(l.q[i]===1?STAFF_SHORT[k]:`${STAFF_SHORT[k]} (${frac(l.q[i])})`):null).filter(Boolean); const fte=m.secStaff.slice(0,9).reduce((a,l)=>a+l.q[i],0); return `<span class="big">${frac(fte)} posts</span><span class="o">${posts.join(" · ")||"None"}</span>`; }],
+    ["Consultants (11-month equivalent)", i=>`<span class="big">${frac(m.secStaff[9].q[i])}</span>`],
+    ["In-person or hybrid governance meetings", i=>`<span class="big">${cadence(sumTag("ip",i))}</span><span class="o">${listTag(["ip"],i).join(" · ")}</span>`],
+    ["Virtual meetings and town halls", i=>`<span class="big">${cadence(sumTag("v",i))}</span><span class="o">${listTag(["v"],i).join(" · ")}</span>`],
+    ["World Day for Glaciers celebration", i=>`<span class="big">${cadence(sumTag("wdg",i))}</span>`],
+    ["Side events at major international events", i=>`<span class="big">${cadence(sumTag("side",i))}</span>${overDecade(sumTag("side",i))}`],
+    ["Policy briefs and decision-maker products", i=>`<span class="big">${cadence(sumTag("brief",i))}</span>${overDecade(sumTag("brief",i))}`],
+    ["Interviews and video packages", i=>`<span class="big">${cadence(sumTag("video",i))}</span>${overDecade(sumTag("video",i))}`],
+    ["Editing, publication and translation packages", i=>`<span class="big">${cadence(sumTag("pub",i))}</span>`],
+    ["Missions and stakeholder engagement packages", i=>`<span class="big">${cadence(sumTag("mission",i))}</span>`],
+    ["Monitoring, evaluation and audit packages", i=>`<span class="big">${cadence(sumTag("mel",i))}</span>`],
+    ["Digital workspace packages", i=>`<span class="big">Website ${frac(sumTag("web",i))} · SharePoint ${frac(sumTag("sp",i))}</span><span class="o">Annual hosting and management packages</span>`]
+  ];
+  const wq=(k,i)=>m.wg[k].q[i];
+  const wgAll=(k,i,label)=>{ const t=wq(k,i)*nWG; return `<span class="big">${t>0?frac(t)+" "+label:'<span class="nil">None</span>'}</span>${t>0?`<span class="o">${frac(wq(k,i))} per Working Group per year</span>`:""}`; };
+  const rowsWG=[
+    ["Working Groups funded", i=>`<span class="big">${nWG} groups</span><span class="o">USD ${fmt(R.wgPer[i])} each per year</span>`],
+    ["Dedicated technical support", i=>wgAll(0,i,"support packages per year")],
+    ["In-person Working Group meetings", i=>wgAll(1,i,"meetings per year")],
+    ["Indigenous representative allowances", i=>wgAll(2,i,"allowances per year")],
+    ["Travel support packages", i=>wgAll(4,i,"packages per year")],
+    ["Early-career fellowships", i=>{ const t=wq(5,i)*nWG; const s=wgAll(5,i,"fellowships per year"); return t>0?s.replace(/<\/span>$/,` · ${Math.round(t*years(m).length)} over ${years(m).length} years</span>`):s; }],
+    ["Technical studies, data and publications", i=>wgAll(6,i,"studies per year")],
+    ["Virtual coordination meetings", i=>wgAll(3,i,"meetings per year")]
+  ];
+  const nCh=i=>chains(m,i);
+  const rowsProd=[
+    ["Scope", i=>`<span class="big">${LEVEL_NAMES.prod[i]}</span>`],
+    ["UNESCO regional groupings covered", i=>`<span class="big">${frac(m.coverage.groupings[i])} of 6</span>`],
+    ["Integrated regional project chains", i=>`<span class="big">${frac(nCh(i))} chains</span><span class="o">${frac(m.coverage.perGrouping[i])} per grouping · USD ${fmtM(chainUnit(m))} each per year</span>`],
+    ["OC delivery streams funded", i=>`<span class="big">${frac(nCh(i)*m.streams.length)} streams</span><span class="o">${frac(nCh(i))} for each of OC1 to OC5</span>`],
+    ["Project preparation and finance convergence", i=>`<span class="big">${frac(nCh(i))} packages per year</span><span class="o">One per project chain</span>`],
+    ["Cryosphere Intelligence Platform", i=>`<span class="big">${frac(m.prod[1].q[i])} service tier${m.prod[1].q[i]===1?"":"s"}</span>`],
+    ["Cross-regional synthesis and open-access products", i=>`<span class="big">${frac(m.prod[3].q[i])} package${m.prod[3].q[i]===1?"":"s"} per year</span>`],
+    ["Triennial synthesis and Cryosphere Summit", i=>{ const q=m.prod[4].q[i]; return `<span class="big">${q>0?(q===1?"1 edition every 3 years":`${frac(q)} × 1 edition every 3 years`):'<span class="nil">None</span>'}</span>${q>0?`<span class="o">USD ${fmtM(m.ops.summit.unit)} per edition</span>`:""}`; }]
+  ];
+  const block=(c,rows,annual)=>{
+    const cur=S.lv[c.k];
+    const cell=(i,inner,extra="")=>`<td class="pick ${i===cur?"on":""}" data-comp="${c.k}" data-lv="${i}" title="Use ${lvLabel(i)} for ${c.name}"${extra}>${inner}</td>`;
+    return `<tr class="grp"><td><span style="display:inline-flex;align-items:center;gap:8px"><i class="sw" style="background:var(${c.c})"></i>${c.name}</span></td>${L.map(i=>`<td class="${i===cur?"on":""}"><b>USD ${fmtM(annual[i],2)}</b><span class="o" style="font-weight:500">per year${i===cur?" · selected":""}</span></td>`).join("")}</tr>`
+      + rows.map(([lab,f])=>`<tr><td>${lab}</td>${L.map(i=>cell(i,f(i))).join("")}</tr>`).join("");
+  };
+  return `<div class="glass card"><div class="card-head"><div><h2>What each level covers</h2><p>What the budget pays for at each level, per year at full level. The highlighted column is the level selected for each block; click any cell to switch that block to that level.</p></div></div>
+    <div class="table-wrap"><table class="cover"><thead><tr><th>Item</th>${L.map(i=>`<th><div class="lvh">${lvLabel(i)}<span>${["Targeted hotspots","Global coverage","Universal scaled delivery"][i]}</span></div></th>`).join("")}</tr></thead><tbody>
+    ${block(COMP[0],rowsSec,R.sec)}${block(COMP[1],rowsWG,R.wgAll)}${block(COMP[2],rowsProd,R.prodAll)}
+    </tbody></table></div></div>`;
+}
+
 const RESET_BTN = `<button class="btn sm" type="button" data-act="reset">Reset to workbook</button>`;
 const isMod = p => { const a=getPath(S.m,p), b=getPath(WORKBOOK,p); return a!==b; };
 function inp(path,{cls="",step=1,label=""}={}){
@@ -585,6 +663,7 @@ function unitCell(listName,idx,l){
   if(l.ref){ const shared=refCount(l.ref,"ops")>1; return inp(`ops.${l.ref}.unit`,{cls:"wide",step:500,label:`${l.name} unit cost`})+(shared?`<span class="linked" title="This unit cost from the Assumptions sheet is used by more than one line; changing it here changes all of them">linked</span>`:""); }
   return inp(`${listName}.${idx}.unit`,{cls:"wide",step:500,label:`${l.name} unit cost`});
 }
+function totalRow(label,vals,key,cur){ const on=i=>i===cur?"on":""; return `<tr class="sum total"><td>${label}</td><td></td>${[0,1,2].map(i=>`<td class="${on(i)}"></td>`).join("")}${[0,1,2].map(i=>`<td class="${on(i)}" data-out="${key}.${i}">${fmt(vals[i])}</td>`).join("")}</tr>`; }
 function lineTable(listName,rows,costs,compKey,{sumLabel,sums,extraFoot=""}={}){
   const cur=S.lv[compKey];
   const th=[0,1,2].map(i=>`<th class="${i===cur?"on":""}">Qty L${i+1}</th>`).join("")+[0,1,2].map(i=>`<th class="${i===cur?"on":""}">L${i+1} (USD/yr)</th>`).join("");
@@ -622,6 +701,7 @@ function viewOverview(R,sc){
     <div class="glass card span2"><div class="card-head"><div><h2>Decade total by scenario</h2><p>Eight-year cost with PSC, by budget block. The outlined bar is your current selection. Hover a bar for the breakdown.</p></div></div>${legend}<div class="chart" id="chA"></div></div>
     <div class="glass card"><div class="card-head"><div><h2>Where the money goes</h2><p>Your selection, decade total with PSC.</p></div></div><div class="rank" style="margin-bottom:18px">${shares}</div><div class="eyebrow" style="margin-bottom:10px">Largest budget lines</div>${rank}</div>
   </div>
+  ${coverTable(R)}
   <div class="glass card"><div class="card-head"><div><h2>Annual funding need, ${years(m)[0]}–${years(m).slice(-1)[0]}</h2><p>Your selection, per year with PSC. The workbook assumes the same amount every year; use the escalation and ramp-up levers in Assumptions to test other profiles.</p></div></div>${legend.replace(/<span><i class="dash"><\/i>Mobilisation target<\/span>/,"")}<div class="chart" id="chB"></div></div>`;
 }
 
@@ -635,8 +715,7 @@ function viewSec(R,sc){
   return head("Budget block 1","Secretariat","Central coordination at UNESCO (SC/HYD/HCA). Quantities are full-time equivalents or events per year; 0.5 means one event every two years.",RESET_BTN)+`
   <div class="glass card"><div class="card-head"><div><h2>${lvLabel(cur)} against its target envelope</h2><p>Annual direct cost USD ${fmt(R.sec[cur])}: staff USD ${fmt(R.staffSub[cur])}, governance and operations USD ${fmt(R.opsSub[cur])}.</p></div></div>${gauge}</div>
   <div class="glass card"><div class="card-head"><div><h2>Staff</h2><p>Full annual cost at UNESCO Headquarters, Paris, on the <b>${m.params.basis==="max"?"maximum":"standard unit"}</b> cost basis. Switch the basis in Assumptions.</p></div></div>${lineTable("secStaff",m.secStaff,R.secStaff,"sec",{sumLabel:"Subtotal - staff",sums:R.staffSub})}</div>
-  <div class="glass card"><div class="card-head"><div><h2>Governance and operations</h2><p>Lines marked linked share a unit cost from the Assumptions sheet with other lines.</p></div></div>${lineTable("secOps",m.secOps,R.secOps,"sec",{sumLabel:"Subtotal - governance and operations",sums:R.opsSub})}
-  <div class="table-wrap" style="margin-top:6px"><table><tbody><tr class="sum"><td>Total Secretariat (direct costs, USD/yr)</td>${[0,1,2].map(i=>`<td class="${i===cur?"on":""}" data-out="sec.tot.${i}">${fmt(R.sec[i])}</td>`).join("")}</tr></tbody></table></div></div>`;
+  <div class="glass card"><div class="card-head"><div><h2>Governance and operations</h2><p>Lines marked linked share a unit cost from the Assumptions sheet with other lines.</p></div></div>${lineTable("secOps",m.secOps,R.secOps,"sec",{sumLabel:"Subtotal - governance and operations",sums:R.opsSub,extraFoot:totalRow("Total Secretariat (direct costs, USD/yr)",R.sec,"sec.tot",cur)})}</div>`;
 }
 
 function viewWG(R,sc){
@@ -648,8 +727,7 @@ function viewWG(R,sc){
     <div class="glass stat"><span class="l">Decade total, PSC included</span><span class="v">USD ${fmtM(sc.dec.wg)}</span><span class="s">${years(m).length} years · PSC ${pct(m.params.psc)}</span></div>
   </div>
   <div class="glass card"><div class="card-head"><div><h2>Budget lines per Working Group</h2><p>The technical support line uses the staff cost basis chosen in Assumptions.</p></div><div class="row"><label class="muted" for="in-params-nWG" style="font-size:13px;font-weight:600">Number of Working Groups</label>${inp("params.nWG",{cls:"qty",step:1,label:"Number of Working Groups"})}</div></div>
-  ${lineTable("wg",m.wg,R.wg,"wg",{sumLabel:"Subtotal per Working Group (USD/yr)",sums:R.wgPer})}
-  <div class="table-wrap" style="margin-top:6px"><table><tbody><tr class="sum"><td>Total Working Groups (direct costs, USD/yr)</td>${[0,1,2].map(i=>`<td class="${i===cur?"on":""}" data-out="wg.all.${i}">${fmt(R.wgAll[i])}</td>`).join("")}</tr></tbody></table></div></div>`;
+  ${lineTable("wg",m.wg,R.wg,"wg",{sumLabel:"Subtotal per Working Group (USD/yr)",sums:R.wgPer,extraFoot:totalRow(`Total Working Groups × ${m.params.nWG} (direct costs, USD/yr)`,R.wgAll,"wg.all",cur)})}</div>`;
 }
 
 function viewProd(R,sc){
